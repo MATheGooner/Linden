@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --color-ivory: #f7f5ef;
+  --color-paper: #fffefa;
+  --color-forest: #243d32;
+  --color-olive: #626f55;
+  --color-charcoal: #272b27;
+  --color-stone: #6d6e65;
+  --color-line: #deded4;
+  --font-display: "Iowan Old Style", "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --space-page: clamp(1.5rem, 7vw, 7.5rem);
+}
+
+@theme inline {
+  --color-ivory: var(--color-ivory);
+  --color-paper: var(--color-paper);
+  --color-forest: var(--color-forest);
+  --color-olive: var(--color-olive);
+  --color-charcoal: var(--color-charcoal);
+  --color-stone: var(--color-stone);
+  --color-line: var(--color-line);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-ivory);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #dce2d6;
+  color: var(--color-forest);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-olive);
+  outline-offset: 4px;
+}
