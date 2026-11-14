@@ -11,8 +11,8 @@ import { getDatabase } from "@/db";
 import { enquiries, properties } from "@/db/schema";
 
 export async function loginAction(form: FormData) {
-  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD_HASH || !process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET.length < 32) {
-    console.warn("[admin-auth] configuration incomplete", { emailConfigured: Boolean(process.env.ADMIN_EMAIL?.trim()), passwordHashConfigured: Boolean(process.env.ADMIN_PASSWORD_HASH), sessionSecretConfigured: Boolean(process.env.ADMIN_SESSION_SECRET), sessionSecretMeetsMinimum: (process.env.ADMIN_SESSION_SECRET?.length ?? 0) >= 32 });
+  if (!process.env.ADMIN_EMAIL?.trim() || !process.env.ADMIN_PASSWORD || !process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET.length < 32) {
+    console.warn("[admin-auth] configuration incomplete", { emailConfigured: Boolean(process.env.ADMIN_EMAIL?.trim()), passwordConfigured: Boolean(process.env.ADMIN_PASSWORD), sessionSecretConfigured: Boolean(process.env.ADMIN_SESSION_SECRET), sessionSecretMeetsMinimum: (process.env.ADMIN_SESSION_SECRET?.length ?? 0) >= 32 });
     redirect("/admin/login?error=setup");
   }
   const key = await requestKey();

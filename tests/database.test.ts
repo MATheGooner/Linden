@@ -17,7 +17,9 @@ import { listProperties } from "../src/repositories/properties";
 import { diagnoseAdminCredentials, verifyAdminCredentials } from "../src/lib/admin/credentials";
 import { enquiryStatusSchema, loginSchema, propertyInputSchema } from "../src/lib/admin/schemas";
 import { isDuplicateSlugError, shouldBlockPropertyDeletion } from "../src/lib/admin/policies";
-import { escapeForNextEnv, hashAdminPassword, passwordPolicyError } from "../scripts/hash-admin-password.mjs";
+import { formatEnvPassword, storeAdminPassword } from "../scripts/configure-admin-password.mjs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 test("the schema declares typed tables, relationships, and required constraints", () => {
   assert.equal(properties.slug.notNull, true);
@@ -130,12 +132,12 @@ test("admin property input rejects unsafe paths and invalid listing fields", () 
   assert.equal(enquiryStatusSchema.safeParse("deleted").success, false);
 });
 
-test("admin credentials require the configured email and matching bcrypt password", async () => {
+test("admin credentials compare configured email and password", async () => {
   const previousEmail = process.env.ADMIN_EMAIL;
-  const previousHash = process.env.ADMIN_PASSWORD_HASH;
-  const knownPassword = "correct horse battery staple 7!";
+  const previousPassword = process.env.ADMIN_PASSWORD;
+  const knownPassword = "correct horse battery staple 7!$part";
   process.env.ADMIN_EMAIL = "admin@example.test";
-  process.env.ADMIN_PASSWORD_HASH = await hashAdminPassword(knownPassword);
+  process.env.ADMIN_PASSWORD = knownPassword;
   try {
     assert.equal(await verifyAdminCredentials("ADMIN@example.test", knownPassword), true);
     assert.equal(await verifyAdminCredentials("other@example.test", knownPassword), false);
@@ -143,52 +145,37 @@ test("admin credentials require the configured email and matching bcrypt passwor
     assert.equal(await diagnoseAdminCredentials("admin@example.test", "wrong password value"), "password-mismatch");
     assert.equal(await diagnoseAdminCredentials("other@example.test", knownPassword), "email-mismatch");
     assert.equal(loginSchema.safeParse({ email: " admin@example.test ", password: knownPassword }).success, true);
-    process.env.ADMIN_PASSWORD_HASH = "not-a-bcrypt-hash";
-    assert.equal(await diagnoseAdminCredentials("admin@example.test", "anything"), "invalid-hash");
+    process.env.ADMIN_PASSWORD = "";
+    assert.equal(await diagnoseAdminCredentials("admin@example.test", "anything"), "not-configured");
   } finally {
     if (previousEmail === undefined) delete process.env.ADMIN_EMAIL;
     else process.env.ADMIN_EMAIL = previousEmail;
-    if (previousHash === undefined) delete process.env.ADMIN_PASSWORD_HASH;
-    else process.env.ADMIN_PASSWORD_HASH = previousHash;
+    if (previousPassword === undefined) delete process.env.ADMIN_PASSWORD;
+    else process.env.ADMIN_PASSWORD = previousPassword;
   }
 });
 
-test("admin hash helper accepts only non-empty strong passwords", async () => {
-  assert.equal(passwordPolicyError("") !== undefined, true);
-  assert.equal(passwordPolicyError("short") !== undefined, true);
-  assert.equal(passwordPolicyError("é".repeat(37)) !== undefined, true);
-  await assert.rejects(() => hashAdminPassword(""));
-  const generatedHash = await hashAdminPassword("known non-empty password 42");
-  const previousEmail = process.env.ADMIN_EMAIL;
-  const previousHash = process.env.ADMIN_PASSWORD_HASH;
-  process.env.ADMIN_EMAIL = "configured@example.test";
-  process.env.ADMIN_PASSWORD_HASH = generatedHash;
+test("admin password setup safely stores special characters in an env file", async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), "linden-auth-test-"));
+  const envPath = resolve(directory, ".env.local");
+  const password = "Strong password !$with-quotes";
   try {
-    assert.equal(await diagnoseAdminCredentials("configured@example.test", "known non-empty password 42"), "authenticated");
+    await storeAdminPassword(password, envPath);
+    const saved = await readFile(envPath, "utf8");
+    assert.ok(saved.includes(`ADMIN_PASSWORD=${formatEnvPassword(password)}`));
+    assert.ok(!saved.includes("\nStrong password"));
+    const envParse = `
+      const { processEnv } = require("@next/env");
+      processEnv([{ path: ".env.local", contents: "LINDEN_PASSWORD_TEST=" + process.argv[1] + "\\n", env: {} }], process.cwd(), { info() {}, error() {} }, true);
+      process.stdout.write(JSON.stringify({equal: process.env.LINDEN_PASSWORD_TEST === process.argv[2], actualLength: process.env.LINDEN_PASSWORD_TEST?.length, expectedLength: process.argv[2]?.length, hasDollar: process.env.LINDEN_PASSWORD_TEST?.includes("$")}));
+    `;
+    const parsed = spawnSync(process.execPath, ["-e", envParse, formatEnvPassword(password), password], { encoding: "utf8" });
+    assert.equal(parsed.status, 0, parsed.stderr);
+    const result = JSON.parse(parsed.stdout) as { equal: boolean; actualLength: number; expectedLength: number; hasDollar: boolean };
+    assert.equal(result.equal, true, JSON.stringify(result));
   } finally {
-    if (previousEmail === undefined) delete process.env.ADMIN_EMAIL;
-    else process.env.ADMIN_EMAIL = previousEmail;
-    if (previousHash === undefined) delete process.env.ADMIN_PASSWORD_HASH;
-    else process.env.ADMIN_PASSWORD_HASH = previousHash;
+    await rm(directory, { recursive: true, force: true });
   }
-});
-
-test("bcrypt hashes survive Next.js environment expansion and the checker uses Next loading", () => {
-  const bcryptLikeHash = `$2b$04$${"A".repeat(53)}`;
-  const escapedHash = escapeForNextEnv(bcryptLikeHash);
-  const script = `
-    const { processEnv } = require("@next/env");
-    const raw = process.argv[1];
-    const escaped = process.argv[2];
-    processEnv([{ path: ".env.local", contents: "LINDEN_RAW_TEST=" + raw + "\\nLINDEN_ESCAPED_TEST=" + escaped + "\\n", env: {} }], process.cwd(), { info() {}, error() {} }, true);
-    process.stdout.write(JSON.stringify({ raw: process.env.LINDEN_RAW_TEST, escaped: process.env.LINDEN_ESCAPED_TEST }));
-  `;
-  const result = spawnSync(process.execPath, ["-e", script, bcryptLikeHash, escapedHash], { encoding: "utf8" });
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), { raw: "", escaped: bcryptLikeHash });
-
-  const checker = readFileSync(resolve("scripts/check-admin-password.mjs"), "utf8");
-  assert.match(checker, /loadEnvConfig\(process\.cwd\(\)/);
 });
 
 test("admin password visibility control is hidden by default and does not submit its toggle", () => {

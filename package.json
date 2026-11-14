@@ -12,14 +12,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
-    "admin:hash-password": "node scripts/hash-admin-password.mjs",
-    "admin:check-password": "node --conditions=react-server --import tsx scripts/check-admin-password.mjs"
+    "admin:setup-password": "node --conditions=react-server --import tsx scripts/configure-admin-password.mjs"
   },
   "dependencies": {
-    "@next/env": "16.4.3",
     "@inquirer/prompts": "^7.10.1",
     "@neondatabase/serverless": "^1.2.0",
-    "bcryptjs": "^3.0.3",
+    "@next/env": "16.4.3",
     "drizzle-orm": "^0.45.4",
     "jose": "^6.2.13",
     "lucide-react": "^1.61.0",
