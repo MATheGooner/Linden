@@ -46,7 +46,6 @@ export default async function PropertyDetailPage({ params }: PageProps) {
               <h1 className="max-w-4xl font-serif text-[clamp(2.8rem,6.4vw,5.5rem)] leading-[1] tracking-[-0.045em] text-forest">{property.title}</h1>
             </div>
             <div className="lg:justify-self-end">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-stone">{property.transactionType === "sale" ? "Fictional sale example" : "Fictional rental example"}</p>
               <p className="mt-2 font-serif text-3xl text-forest sm:text-4xl">{price}</p>
               <Link className="mt-5 inline-flex min-h-12 items-center justify-center bg-forest px-5 text-sm text-paper outline-offset-4 hover:bg-[#1b3027]" href="#viewing-request">Request a viewing</Link>
             </div>

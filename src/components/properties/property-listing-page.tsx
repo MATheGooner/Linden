@@ -42,7 +42,7 @@ export async function PropertyListingPage({ config, searchParams }: { config: Li
       </section>
       <section className="px-[var(--space-page)] py-10 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 border-l-2 border-olive pl-4 text-sm leading-6 text-stone">Fictional portfolio entries are labeled as examples. Images identified as illustrative do not depict a property.</div>
+          <div className="mb-8 border-l-2 border-olive pl-4 text-sm leading-6 text-stone">These fictional portfolio entries are for demonstration and are not real market listings. Images identified as illustrative do not depict a property.</div>
           <PropertyResults initialFilters={initialFilters} initialItems={items} initialTotal={total} initialError={error} transaction={config.transaction} />
         </div>
       </section>

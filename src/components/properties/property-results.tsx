@@ -129,10 +129,9 @@ export function PropertyResults({ initialFilters, initialItems, initialTotal, in
 function PropertyCard({ property, transaction }: { property: PropertyRecord; transaction: TransactionType }) {
   const [imageFailed, setImageFailed] = useState(false);
   return <article className="group min-w-0">
-    <Link aria-label={`${property.title}, ${property.area}. ${formatChfPrice(property.priceChf)}${transaction === "rent" ? " per month" : ""}. View fictional example`} className="block outline-offset-4" href={`/properties/${property.slug}`}>
+    <Link aria-label={`${property.title}, ${property.area}. ${formatChfPrice(property.priceChf)}${transaction === "rent" ? " per month" : ""}. View property details`} className="block outline-offset-4" href={`/properties/${property.slug}`}>
       <div className="relative aspect-[4/3] overflow-hidden bg-[#e7e3d9]">
         {!imageFailed && <Image alt={property.image.alt} className="object-cover transition-transform duration-700 motion-reduce:transition-none motion-safe:group-hover:scale-[1.025]" fill onError={() => setImageFailed(true)} sizes="(min-width: 1280px) 28vw, (min-width: 640px) 44vw, 100vw" src={property.image.src} />}
-        <span className="absolute left-3 top-3 bg-paper/95 px-2.5 py-1.5 text-[0.65rem] font-medium uppercase tracking-[0.12em] text-forest">{property.isFictional ? "Fictional example" : "Property"}</span>
       </div>
       <div className="pt-4">
         <div className="flex items-start justify-between gap-3"><h2 className="font-serif text-2xl leading-tight tracking-[-0.025em] text-forest group-hover:underline group-hover:decoration-line group-hover:underline-offset-4">{property.title}</h2><span className="shrink-0 pt-1 text-sm font-medium text-charcoal">{formatChfPrice(property.priceChf)}{transaction === "rent" && <span className="block text-right text-xs font-normal text-stone">per month</span>}</span></div>
